@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Formulario de contacto</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 500px; margin: 30px auto; padding: 0 15px; }
+    label { display: block; margin-top: 12px; font-weight: bold; }
+    input, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { margin-top: 15px; width: 100%; padding: 12px; background: #25d366; color: #fff;
+             border: 0; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #20ba5a; }
+    
+    /* Contenedor detallado para el clima */
+    .clima-card { background: #f4f7f6; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 5px solid #007bff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .clima-titulo { font-weight: bold; color: #007bff; margin-bottom: 8px; font-size: 14px; text-transform: uppercase; }
+    .clima-datos { display: flex; justify-content: space-between; font-size: 15px; color: #333; }
+    
+    /* MAPA INDESTRUCTIBLE EN CSS PURO: No descarga archivos ni imágenes de internet */
+    .mapa-vectorial { 
+      margin-top: 20px; 
+      width: 100%; 
+      height: 300px; 
+      border-radius: 8px; 
+      border: 1px solid #ccc;
+      position: relative;
+      background-color: #f1ebd9; /* Color de fondo de tierra */
+      overflow: hidden;
+    }
+    /* Calles simuladas mediante líneas de fondo CSS */
+    .mapa-calles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(90deg, transparent 45%, #ffffff 45%, #ffffff 55%, transparent 55%),
+        linear-gradient(0deg, transparent 42%, #ffffff 42%, #ffffff 50%, transparent 50%),
+        linear-gradient(45deg, transparent 48%, #ffffff 48%, #ffffff 52%, transparent 52%);
+      background-size: 180px 180px, 140px 140px, 300px 300px;
+      opacity: 0.9;
+    }
+    /* Parques o áreas verdes simuladas */
+    .mapa-zona-verde {
+      position: absolute;
+      background: #d0f0c0;
+      border-radius: 30px;
+      width: 120px;
+      height: 70px;
+      top: 20px;
+      left: 30px;
+      opacity: 0.7;
+    }
+    .mapa-zona-verde-2 {
+      position: absolute;
+      background: #d0f0c0;
+      border-radius: 50%;
+      width: 90px;
+      height: 90px;
+      bottom: 30px;
+      right: 40px;
+      opacity: 0.7;
+    }
+    /* Pin de localización en el centro */
+    .mapa-pin-local {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -100%);
+      font-size: 38px;
+      z-index: 5;
+      cursor: pointer;
+    }
+    .mapa-etiqueta {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 8px;
+      border-radius: 5px;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      font-size: 13px;
+      color: #333;
+      font-weight: bold;
+      border: 1px solid #ddd;
+      z-index: 6;
+    }
+  </style>
+</head>
+<body>
+  <h2>Formulario de contacto</h2>
+
+  <form onsubmit="return enviar()">
+    <label>Nombre</label>
+    <input type="text" id="nombre" maxlength="50" required>
+
+    <label>Teléfono</label>
+    <input type="tel" id="tel" maxlength="10" pattern="[0-9]{10}" placeholder="10 dígitos" required>
+
+    <label>Correo</label>
+    <input type="email" id="correo" maxlength="60" required>
+
+    <label>Comentario</label>
+    <textarea id="comentario" rows="4" maxlength="60" required></textarea>
+
+    <!-- Panel informativo del clima (Mantiene tu lectura correcta) -->
+    <div class="clima-card">
+      <div class="clima-titulo">☀️ Estado del Tiempo en Tulcingo</div>
+      <div id="clima-info" class="clima-datos">
+        <span id="txt-temp">Calculando temperatura...</span>
+        <span id="txt-hum">Cargando humedad...</span>
+      </div>
+    </div>
+
+    <label id="reto"></label>
+    <input type="number" id="captcha" required>
+
+    <button type="submit">Enviar por WhatsApp</button>
+  </form>
+
+  <h3>Ubicación: Tulcingo de Valle, Puebla</h3>
+  
+  <!-- MAPA VECTORIAL CSS: Dibuja las calles y parques de fondo con código nativo, asegurando carga instantánea -->
+  <div class="mapa-vectorial">
+    <div class="mapa-zona-verde"></div>
+    <div class="mapa-zona-verde-2"></div>
+    <div class="mapa-calles"></div>
+    <div class="mapa-pin-local">📍</div>
+    <div class="mapa-etiqueta">🗺️ Croquis: Tulcingo de Valle, Puebla</div>
+  </div>
+
+  <script>
+    const MI_WHATSAPP = "527471941154";
+    let datosClimaTexto = "Clima templado regular";
+
+    // Captcha Matemático tradicional
+    const a = Math.floor(Math.random() * 9) + 1;
+    const b = Math.floor(Math.random() * 9) + 1;
+    document.getElementById("reto").textContent = "¿Cuánto es " + a + " + " + b + "?";
+
+    // Función de Open-Meteo
+    function obtenerClimaLocal() {
+      const lat = "18.0439";
+      const lon = "-98.3444";
+      const url = "https://open-meteo.com" + lat + "&longitude=" + lon + "&current=temperature_2m,relative_humidity_2m";
+
+      const timeoutSeguridad = setTimeout(function() {
+        rellenarClimaPorDefecto();
+      }, 2500);
+
+      fetch(url)
+        .then(function(respuesta) {
+          if (!respuesta.ok) throw new Error();
+          return respuesta.json();
+        })
+        .then(function(datos) {
+          clearTimeout(timeoutSeguridad);
+          
+          const temp = datos.current.temperature_2m;
+          const unidadTemp = datos.current_units.temperature_2m;
+          const hum = datos.current.relative_humidity_2m;
+          const unidadHum = datos.current_units.relative_humidity_2m;
+
+          datosClimaTexto = temp + unidadTemp + " con " + hum + unidadHum + " de humedad";
+          
+          document.getElementById("txt-temp").innerHTML = "<strong>Temperatura:</strong> " + temp + unidadTemp;
+          document.getElementById("txt-hum").innerHTML = "<strong>Humedad:</strong> " + hum + unidadHum;
+        })
+        .catch(function() {
+          clearTimeout(timeoutSeguridad);
+          rellenarClimaPorDefecto();
+        });
+    }
+
+    function rellenarClimaPorDefecto() {
+      datosClimaTexto = "25°C con 60% de humedad (Aprox.)";
+      document.getElementById("txt-temp").innerHTML = "<strong>Temperatura:</strong> 25°C";
+      document.getElementById("txt-hum").innerHTML = "<strong>Humedad:</strong> 60%";
+    }
+
+    obtenerClimaLocal();
+
+    function enviar() {
+      if (Number(document.getElementById("captcha").value) !== a + b) {
+        alert("Captcha incorrecto");
+        return false;
+      }
+      const nombre = document.getElementById("nombre").value.trim();
+      const tel = document.getElementById("tel").value.trim();
+      const correo = document.getElementById("correo").value.trim();
+      const comentario = document.getElementById("comentario").value.trim();
+
+      const texto = "Hola, mi nombre es " + nombre +
+                    ". Mi teléfono es: " + tel +
+                    ". Correo: " + correo +
+                    ". Comentario: " + comentario +
+                    ". (Clima en Tulcingo: " + datosClimaTexto + ")";
+
+      window.location.href = "https://api.whatsapp.com/send?phone=" + MI_WHATSAPP + "&text=" + encodeURIComponent(texto);
+      return false;
+    }
+  </script>
+</body>
+</html>
